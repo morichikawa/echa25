@@ -6,13 +6,12 @@
 # Node.jsバージョンの設定
 nvm use
 
-# バックエンドの依存関係をインストール
-cd backend
-npm install
+# 依存関係をインストール
+npm run install
 
 # デプロイ
-npx cdk deploy
+npm run deploy
 
 # リソースの削除
-npx cdk destroy --force
+npm run destroy
 ```
