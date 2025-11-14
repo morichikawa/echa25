@@ -29,26 +29,29 @@ WebRTC P2P通信を使用したリアルタイム共同お絵描きアプリケ�
 ## データフロー
 
 ### 接続確立フロー（Lambdaを使用）
-```
-[ブラウザA] ←WebSocket→ [API Gateway] ←→ [Lambda] ←→ [DynamoDB]
-                              ↕
-[ブラウザB] ←WebSocket→ [API Gateway]
-```
 
-1. ブラウザAがWebSocketで接続
-2. ブラウザBがWebSocketで接続
-3. WebRTCのOffer/Answer/ICE Candidateを交換（Lambdaで中継）
-4. P2P接続確立後、WebSocketを切断
+```mermaid
+graph LR
+    A[ブラウザA] <-->|WebSocket| GW[API Gateway]
+    B[ブラウザB] <-->|WebSocket| GW
+    GW <-->|Offer/Answer/ICE| L[Lambda]
+    L <-->|接続情報| DB[(DynamoDB)]
+    
+    style L fill:#ff9
+    style DB fill:#9cf
+```
 
 ### 描画データフロー（P2P直接通信、Lambda不使用）
-```
-[ブラウザA] ←WebRTC P2P→ [ブラウザB]
+
+```mermaid
+graph LR
+    A[ブラウザA] <-->|WebRTC P2P<br/>描画データ| B[ブラウザB]
+    
+    style A fill:#9f9
+    style B fill:#9f9
 ```
 
-1. ユーザーがキャンバスに描画
-2. WebRTC DataChannelで直接送信
-3. 相手ブラウザで即座に描画
-4. **Lambdaは実行されない = 完全無料**
+**ポイント**: Lambdaを経由せずブラウザ間で直接通信 = 完全無料
 
 ## コスト最適化ポイント
 
