@@ -2,10 +2,10 @@
   "name": "echa25",
   "version": "1.0.0",
   "scripts": {
-    "install": "cd backend && npm install",
-    "deploy": "npm run cdk --prefix backend deploy",
-    "destroy": "npm run cdk --prefix backend destroy -- --force",
-    "diff": "npm run cdk --prefix backend diff",
-    "synth": "npm run cdk --prefix backend synth"
+    "install": "cd packages/backend && npm install",
+    "deploy": "npm run cdk --prefix packages/backend deploy",
+    "destroy": "npm run cdk --prefix packages/backend destroy -- --force",
+    "diff": "npm run cdk --prefix packages/backend diff",
+    "synth": "npm run cdk --prefix packages/backend synth"
   }
 }
