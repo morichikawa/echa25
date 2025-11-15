@@ -6,6 +6,9 @@
     "deploy": "npm run cdk --prefix packages/backend deploy",
     "destroy": "npm run cdk --prefix packages/backend destroy -- --force",
     "diff": "npm run cdk --prefix packages/backend diff",
-    "synth": "npm run cdk --prefix packages/backend synth"
+    "synth": "npm run cdk --prefix packages/backend synth",
+    "dev": "npx http-server packages/frontend -p 8000 -o -c-1",
+    "test": "cd packages/frontend && npm test",
+    "test:install": "cd packages/frontend && npm install"
   }
 }

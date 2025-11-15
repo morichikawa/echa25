@@ -93,6 +93,9 @@ npm run deploy
 ### 開発中
 
 ```bash
+# フロントエンド開発サーバー起動
+npm run dev
+
 # 変更差分を確認
 npm run diff
 
