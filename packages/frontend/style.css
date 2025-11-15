@@ -10,12 +10,11 @@ body {
 }
 
 #container {
-  max-width: 1200px;
-  margin: 20px auto;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
   padding: 20px;
   background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
 h1 {
@@ -61,12 +60,13 @@ h1 {
 #mainArea {
   display: flex;
   gap: 20px;
+  flex: 1;
+  min-height: 0;
 }
 
 #canvasContainer {
   position: relative;
-  width: 1000px;
-  height: 600px;
+  flex: 1;
   border: 2px solid #333;
   background: 
     linear-gradient(45deg, #ddd 25%, transparent 25%),
@@ -146,32 +146,42 @@ h1 {
   padding: 2px 6px;
   font-size: 12px;
   border: none;
-  background: #dc3545;
-  color: white;
   border-radius: 3px;
   cursor: pointer;
 }
 
-.layer-item button:hover {
+.visibility-btn {
+  background: transparent;
+  font-size: 16px;
+  padding: 0 4px;
+}
+
+.visibility-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.delete-btn {
+  background: #dc3545;
+  color: white;
+}
+
+.delete-btn:hover {
   background: #c82333;
-}
-
-.layer-name {
-  flex: 1;
-  cursor: text;
-}
-
-.layer-name:hover {
-  text-decoration: underline;
 }
 
 .layer-name-input {
   flex: 1;
   padding: 2px 4px;
-  border: 1px solid #007bff;
-  border-radius: 2px;
-  font-size: 14px;
+  border: none;
+  background: transparent;
+  font-size: 13px;
+  width: 100%;
+  min-width: 0;
+}
+
+.layer-name-input:focus {
   outline: none;
+  background: rgba(0, 123, 255, 0.1);
 }
 
 #status {

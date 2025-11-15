@@ -67,6 +67,15 @@ function setActiveLayer(id) {
   updateLayerList();
 }
 
+function toggleLayerVisibility(id) {
+  const layer = layers.find(l => l.id === id);
+  if (layer) {
+    layer.visible = !layer.visible;
+    layer.canvas.style.display = layer.visible ? 'block' : 'none';
+    updateLayerList();
+  }
+}
+
 function getActiveLayer() {
   return layers.find(l => l.id === activeLayerId);
 }
@@ -106,28 +115,45 @@ function updateLayerList() {
     item.dataset.layerId = layer.id;
     item.dataset.index = actualIndex;
     
-    const nameSpan = document.createElement('span');
-    nameSpan.textContent = layer.name;
-    nameSpan.className = 'layer-name';
-    nameSpan.title = 'ダブルクリックで編集';
-    
-    // ダブルクリックで編集
-    nameSpan.addEventListener('dblclick', (e) => {
+    const visibilityBtn = document.createElement('button');
+    visibilityBtn.textContent = layer.visible ? '👁' : '👁‍🗨';
+    visibilityBtn.className = 'visibility-btn';
+    visibilityBtn.addEventListener('click', (e) => {
       e.stopPropagation();
-      const newName = prompt('レイヤー名を入力', layer.name);
-      if (newName !== null) {
-        renameLayer(layer.id, newName);
+      toggleLayerVisibility(layer.id);
+    });
+    
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.value = layer.name;
+    nameInput.className = 'layer-name-input';
+    
+    nameInput.addEventListener('change', (e) => {
+      e.stopPropagation();
+      renameLayer(layer.id, e.target.value);
+    });
+    
+    nameInput.addEventListener('click', (e) => {
+      e.stopPropagation();
+    });
+    
+    nameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.target.blur();
       }
+      e.stopPropagation();
     });
     
     const deleteBtn = document.createElement('button');
     deleteBtn.textContent = '×';
+    deleteBtn.className = 'delete-btn';
     deleteBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       deleteLayer(layer.id);
     });
     
-    item.appendChild(nameSpan);
+    item.appendChild(visibilityBtn);
+    item.appendChild(nameInput);
     item.appendChild(deleteBtn);
     
     item.addEventListener('click', () => {
@@ -217,7 +243,8 @@ if (typeof module !== 'undefined' && module.exports) {
     deleteLayer,
     setActiveLayer,
     getActiveLayer,
-    renameLayer
+    renameLayer,
+    toggleLayerVisibility
   };
 }
 
