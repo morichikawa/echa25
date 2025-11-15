@@ -575,20 +575,20 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // 消しゴムサイズの同期
   eraserSizePicker.addEventListener('input', (e) => {
+    savedEraserSize = parseInt(e.target.value);
     if (currentTool === 'eraser') {
       currentSize = parseInt(e.target.value);
-      savedEraserSize = parseInt(e.target.value);
-      eraserSizeInput.value = e.target.value;
     }
+    eraserSizeInput.value = e.target.value;
   });
   
   eraserSizeInput.addEventListener('input', (e) => {
+    const value = Math.max(5, Math.min(800, parseInt(e.target.value) || 5));
+    savedEraserSize = value;
     if (currentTool === 'eraser') {
-      const value = Math.max(5, Math.min(800, parseInt(e.target.value) || 5));
       currentSize = value;
-      savedEraserSize = value;
-      eraserSizePicker.value = value;
     }
+    eraserSizePicker.value = value;
   });
   
   // ホイールでサイズ変更（Ctrl+ホイール）
