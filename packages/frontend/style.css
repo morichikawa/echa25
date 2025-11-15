@@ -230,3 +230,21 @@ h1 {
   border-radius: 4px;
   font-size: 14px;
 }
+
+.remote-cursor {
+  position: absolute;
+  pointer-events: none;
+  z-index: 10000;
+  transition: left 0.05s linear, top 0.05s linear;
+}
+
+.cursor-nickname {
+  position: absolute;
+  top: 20px;
+  left: 5px;
+  font-size: 12px;
+  font-weight: bold;
+  white-space: nowrap;
+  text-shadow: 0 0 3px white, 0 0 3px white, 0 0 3px white;
+  user-select: none;
+}
