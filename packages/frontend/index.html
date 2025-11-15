@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>echa25</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎨</text></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <script>
+    // キャッシュバスティング用
+    const timestamp = new Date().getTime();
+    document.write('<script src="app.js?' + timestamp + '"><\/script>');
+  </script>
+  <div id="container">
+    <h1>🎨 echa25</h1>
+    
+    <div id="toolbar">
+      <button id="penBtn" class="tool-btn active">✏️ ペン</button>
+      <button id="eraserBtn" class="tool-btn">🧹 消しゴム</button>
+      <label>色: <input type="color" id="colorPicker" value="#000000"></label>
+      <label>ペン太さ: <input type="range" id="sizePicker" min="1" max="20" value="2"></label>
+      <label>消しゴムサイズ: <input type="range" id="eraserSizePicker" min="5" max="50" value="20"></label>
+      <button id="clearBtn">クリア</button>
+    </div>
+    
+    <canvas id="canvas" width="1000" height="600"></canvas>
+    
+    <div id="status">
+      <strong>WebSocket:</strong> <span id="wsStatus">未接続</span> |
+      <strong>WebRTC:</strong> <span id="rtcStatus">未接続</span>
+    </div>
+  </div>
+</body>
+</html>

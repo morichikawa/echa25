@@ -1,0 +1,74 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: sans-serif;
+  background: #f0f0f0;
+}
+
+#container {
+  max-width: 1200px;
+  margin: 20px auto;
+  padding: 20px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+h1 {
+  margin-bottom: 20px;
+  color: #333;
+}
+
+#toolbar {
+  margin-bottom: 10px;
+  padding: 10px;
+  background: #f9f9f9;
+  border-radius: 4px;
+}
+
+#toolbar label {
+  margin-right: 15px;
+}
+
+#toolbar input,
+#toolbar button {
+  margin-right: 10px;
+}
+
+.tool-btn {
+  padding: 8px 16px;
+  border: 2px solid #ddd;
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.tool-btn:hover {
+  background: #f5f5f5;
+}
+
+.tool-btn.active {
+  background: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+#canvas {
+  border: 2px solid #333;
+  cursor: crosshair;
+  display: block;
+  background: white;
+}
+
+#status {
+  margin-top: 10px;
+  padding: 10px;
+  background: #e8f4f8;
+  border-radius: 4px;
+  font-size: 14px;
+}
