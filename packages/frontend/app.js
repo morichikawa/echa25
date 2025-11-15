@@ -557,20 +557,20 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // ペンサイズの同期
   sizePicker.addEventListener('input', (e) => {
+    savedPenSize = parseInt(e.target.value);
     if (currentTool === 'pen') {
       currentSize = parseInt(e.target.value);
-      savedPenSize = parseInt(e.target.value);
-      sizeInput.value = e.target.value;
     }
+    sizeInput.value = e.target.value;
   });
   
   sizeInput.addEventListener('input', (e) => {
+    const value = Math.max(1, Math.min(400, parseInt(e.target.value) || 1));
+    savedPenSize = value;
     if (currentTool === 'pen') {
-      const value = Math.max(1, Math.min(400, parseInt(e.target.value) || 1));
       currentSize = value;
-      savedPenSize = value;
-      sizePicker.value = value;
     }
+    sizePicker.value = value;
   });
   
   // 消しゴムサイズの同期
