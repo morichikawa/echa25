@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import * as cdk from 'aws-cdk-lib';
-import { LambdaStack } from '../lib/lambda-stack';
+import { BackendStack } from '../lib/backend-stack';
 
 const app = new cdk.App();
-new LambdaStack(app, 'LambdaStack');
+new BackendStack(app, 'Echa25BackendStack');
