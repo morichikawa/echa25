@@ -88,11 +88,50 @@ h1 {
   transform-origin: 0 0;
 }
 
-#layerPanel {
+#sidePanel {
   width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+#membersPanel {
   background: #f9f9f9;
   padding: 10px;
   border-radius: 4px;
+}
+
+#membersPanel h3 {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+}
+
+#membersList {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.member-item {
+  padding: 8px;
+  background: white;
+  border: 2px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.member-item.host {
+  border-color: #ffc107;
+  background: #fff9e6;
+}
+
+#layerPanel {
+  background: #f9f9f9;
+  padding: 10px;
+  border-radius: 4px;
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 #layerPanel h3 {
