@@ -20,12 +20,25 @@
       <button id="penBtn" class="tool-btn active">✏️ ペン</button>
       <button id="eraserBtn" class="tool-btn">🧹 消しゴム</button>
       <label>色: <input type="color" id="colorPicker" value="#000000"></label>
-      <label>ペン太さ: <input type="range" id="sizePicker" min="1" max="20" value="2"></label>
-      <label>消しゴムサイズ: <input type="range" id="eraserSizePicker" min="5" max="50" value="20"></label>
+      <label>ペン太さ: 
+        <input type="range" id="sizePicker" min="1" max="400" value="2">
+        <input type="number" id="sizeInput" min="1" max="400" value="2" style="width: 60px;">
+      </label>
+      <label>消しゴムサイズ: 
+        <input type="range" id="eraserSizePicker" min="5" max="800" value="20">
+        <input type="number" id="eraserSizeInput" min="5" max="800" value="20" style="width: 60px;">
+      </label>
       <button id="clearBtn">クリア</button>
     </div>
     
-    <canvas id="canvas" width="1000" height="600"></canvas>
+    <div id="mainArea">
+      <div id="canvasContainer"></div>
+      <div id="layerPanel">
+        <h3>レイヤー</h3>
+        <button id="addLayerBtn">＋ 追加</button>
+        <div id="layerList"></div>
+      </div>
+    </div>
     
     <div id="status">
       <strong>WebSocket:</strong> <span id="wsStatus">未接続</span> |

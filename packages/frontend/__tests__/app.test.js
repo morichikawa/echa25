@@ -5,7 +5,8 @@
 let switchToPen, switchToEraser;
 
 describe('echa25 Drawing App', () => {
-  let penBtn, eraserBtn, colorPicker, sizePicker, clearBtn;
+  let penBtn, eraserBtn, colorPicker, sizePicker, eraserSizePicker, clearBtn;
+  let switchToPen, switchToEraser;
   
   beforeEach(() => {
     document.body.innerHTML = `
@@ -15,6 +16,7 @@ describe('echa25 Drawing App', () => {
           <button id="eraserBtn" class="tool-btn">🧹 消しゴム</button>
           <input type="color" id="colorPicker" value="#000000">
           <input type="range" id="sizePicker" min="1" max="20" value="2">
+          <input type="range" id="eraserSizePicker" min="5" max="50" value="20">
           <button id="clearBtn">クリア</button>
         </div>
         <canvas id="canvas" width="1000" height="600"></canvas>
@@ -29,6 +31,7 @@ describe('echa25 Drawing App', () => {
     eraserBtn = document.getElementById('eraserBtn');
     colorPicker = document.getElementById('colorPicker');
     sizePicker = document.getElementById('sizePicker');
+    eraserSizePicker = document.getElementById('eraserSizePicker');
     clearBtn = document.getElementById('clearBtn');
     
     const module = require('../app.js');
@@ -37,6 +40,7 @@ describe('echa25 Drawing App', () => {
     
     global.penBtn = penBtn;
     global.eraserBtn = eraserBtn;
+    global.colorPicker = colorPicker;
   });
 
   test('ペンボタンがデフォルトでアクティブ', () => {
@@ -65,7 +69,50 @@ describe('echa25 Drawing App', () => {
     expect(colorPicker.value).toBe('#000000');
   });
 
-  test('サイズピッカーのデフォルト値が2', () => {
+  test('ペンサイズピッカーのデフォルト値が2', () => {
     expect(sizePicker.value).toBe('2');
+  });
+
+  test('消しゴムサイズピッカーのデフォルト値が20', () => {
+    expect(eraserSizePicker.value).toBe('20');
+  });
+
+  test('ペンサイズの範囲が1-20', () => {
+    expect(sizePicker.min).toBe('1');
+    expect(sizePicker.max).toBe('20');
+  });
+
+  test('消しゴムサイズの範囲が5-50', () => {
+    expect(eraserSizePicker.min).toBe('5');
+    expect(eraserSizePicker.max).toBe('50');
+  });
+
+  test('ペンと消しゴムを交互に切り替えられる', () => {
+    switchToEraser();
+    expect(eraserBtn.classList.contains('active')).toBe(true);
+    expect(penBtn.classList.contains('active')).toBe(false);
+    
+    switchToPen();
+    expect(penBtn.classList.contains('active')).toBe(true);
+    expect(eraserBtn.classList.contains('active')).toBe(false);
+    
+    switchToEraser();
+    expect(eraserBtn.classList.contains('active')).toBe(true);
+    expect(penBtn.classList.contains('active')).toBe(false);
+  });
+
+  test('ペンと消しゴムの状態が保持される', () => {
+    // 消しゴムに切り替え
+    switchToEraser();
+    expect(eraserBtn.classList.contains('active')).toBe(true);
+    
+    // ペンに戻す
+    switchToPen();
+    expect(penBtn.classList.contains('active')).toBe(true);
+  });
+
+  test('クリアボタンが存在する', () => {
+    expect(clearBtn).toBeDefined();
+    expect(clearBtn.textContent).toBe('クリア');
   });
 });
