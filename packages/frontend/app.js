@@ -249,8 +249,9 @@ if (typeof module !== 'undefined' && module.exports) {
 }
 
 // WebSocket接続（シグナリング用）
-// TODO: デプロイ後にAPI Gateway WebSocket URLに変更
-const WS_URL = 'ws://localhost:3001';
+const WS_URL = window.location.search.includes('local') 
+  ? 'ws://localhost:3001'
+  : 'WEBSOCKET_URL_PLACEHOLDER';
 let ws = null;
 let peerConnection = null;
 let dataChannel = null;
