@@ -9,12 +9,18 @@ import { Construct } from 'constructs';
 import * as fs from 'fs';
 import * as path from 'path';
 
+interface BackendStackProps extends cdk.StackProps {
+  envSuffix: string;
+}
+
 export class BackendStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props: BackendStackProps) {
     super(scope, id, props);
+    const { envSuffix } = props;
 
     // DynamoDB テーブル
     const connectionsTable = new dynamodb.Table(this, 'ConnectionsTable', {
+      tableName: `echa25-connections-${envSuffix}`,
       partitionKey: { name: 'connectionId', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
       timeToLiveAttribute: 'ttl',
@@ -22,6 +28,7 @@ export class BackendStack extends cdk.Stack {
     });
 
     const roomsTable = new dynamodb.Table(this, 'RoomsTable', {
+      tableName: `echa25-rooms-${envSuffix}`,
       partitionKey: { name: 'roomId', type: dynamodb.AttributeType.STRING },
       sortKey: { name: 'connectionId', type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
@@ -31,6 +38,7 @@ export class BackendStack extends cdk.Stack {
 
     // Lambda 関数
     const onConnectFn = new lambda.Function(this, 'OnConnectFunction', {
+      functionName: `echa25-onConnect-${envSuffix}`,
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: 'index.handler',
       code: lambda.Code.fromAsset('functions/onConnect'),
@@ -38,6 +46,7 @@ export class BackendStack extends cdk.Stack {
     });
 
     const onDisconnectFn = new lambda.Function(this, 'OnDisconnectFunction', {
+      functionName: `echa25-onDisconnect-${envSuffix}`,
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: 'index.handler',
       code: lambda.Code.fromAsset('functions/onDisconnect'),
@@ -48,6 +57,7 @@ export class BackendStack extends cdk.Stack {
     });
 
     const onSignalingFn = new lambda.Function(this, 'OnSignalingFunction', {
+      functionName: `echa25-onSignaling-${envSuffix}`,
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: 'index.handler',
       code: lambda.Code.fromAsset('functions/onSignaling'),
@@ -58,6 +68,7 @@ export class BackendStack extends cdk.Stack {
     });
 
     const onJoinFn = new lambda.Function(this, 'OnJoinFunction', {
+      functionName: `echa25-onJoin-${envSuffix}`,
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: 'index.handler',
       code: lambda.Code.fromAsset('functions/onJoin'),
@@ -109,6 +120,7 @@ export class BackendStack extends cdk.Stack {
 
     // S3 バケット
     const frontendBucket = new s3.Bucket(this, 'FrontendBucket', {
+      bucketName: `echa25-frontend-${envSuffix}-${this.account}`,
       websiteIndexDocument: 'index.html',
       publicReadAccess: true,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ACLS,
@@ -118,7 +130,7 @@ export class BackendStack extends cdk.Stack {
 
     // タグ付け
     cdk.Tags.of(this).add('Project', 'echa25');
-    cdk.Tags.of(this).add('Environment', 'dev');
+    cdk.Tags.of(this).add('Environment', envSuffix);
     cdk.Tags.of(this).add('ManagedBy', 'cdk');
 
     // 出力

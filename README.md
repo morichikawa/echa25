@@ -73,7 +73,28 @@ npm run install
 
 # AWS認証情報の確認
 aws sts get-caller-identity
+
+# 環境設定ファイルを作成
+cp packages/backend/.env.example packages/backend/.env
+# .envファイルを編集してENV_SUFFIXを設定（例: dev, prod, staging, 個人名など）
 ```
+
+## 環境管理
+
+AWSリソース名に環境サフィックスを付けて複数環境を分離できます。
+
+```bash
+# packages/backend/.env で環境を設定
+ENV_SUFFIX=dev    # 開発環境
+ENV_SUFFIX=prod   # 本番環境
+ENV_SUFFIX=zoe    # 個人環境
+```
+
+各環境で以下のリソースが作成されます：
+- スタック: `Echa25BackendStack-{ENV_SUFFIX}`
+- DynamoDB: `echa25-connections-{ENV_SUFFIX}`, `echa25-rooms-{ENV_SUFFIX}`
+- Lambda: `echa25-onConnect-{ENV_SUFFIX}`, etc.
+- S3: `echa25-frontend-{ENV_SUFFIX}-{accountId}`
 
 ## 使い方
 
