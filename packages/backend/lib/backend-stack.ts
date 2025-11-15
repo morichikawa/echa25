@@ -21,6 +21,14 @@ export class BackendStack extends cdk.Stack {
       removalPolicy: cdk.RemovalPolicy.DESTROY,
     });
 
+    const roomsTable = new dynamodb.Table(this, 'RoomsTable', {
+      partitionKey: { name: 'roomId', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'connectionId', type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      timeToLiveAttribute: 'ttl',
+      removalPolicy: cdk.RemovalPolicy.DESTROY,
+    });
+
     // Lambda 関数
     const onConnectFn = new lambda.Function(this, 'OnConnectFunction', {
       runtime: lambda.Runtime.NODEJS_20_X,
@@ -33,25 +41,49 @@ export class BackendStack extends cdk.Stack {
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: 'index.handler',
       code: lambda.Code.fromAsset('functions/onDisconnect'),
-      environment: { TABLE_NAME: connectionsTable.tableName },
+      environment: {
+        TABLE_NAME: connectionsTable.tableName,
+        ROOMS_TABLE_NAME: roomsTable.tableName,
+      },
     });
 
     const onSignalingFn = new lambda.Function(this, 'OnSignalingFunction', {
       runtime: lambda.Runtime.NODEJS_20_X,
       handler: 'index.handler',
       code: lambda.Code.fromAsset('functions/onSignaling'),
-      environment: { TABLE_NAME: connectionsTable.tableName },
+      environment: {
+        TABLE_NAME: connectionsTable.tableName,
+        ROOMS_TABLE_NAME: roomsTable.tableName,
+      },
+    });
+
+    const onJoinFn = new lambda.Function(this, 'OnJoinFunction', {
+      runtime: lambda.Runtime.NODEJS_20_X,
+      handler: 'index.handler',
+      code: lambda.Code.fromAsset('functions/onJoin'),
+      environment: {
+        TABLE_NAME: connectionsTable.tableName,
+        ROOMS_TABLE_NAME: roomsTable.tableName,
+      },
     });
 
     connectionsTable.grantReadWriteData(onConnectFn);
     connectionsTable.grantReadWriteData(onDisconnectFn);
     connectionsTable.grantReadWriteData(onSignalingFn);
+    connectionsTable.grantReadWriteData(onJoinFn);
+    roomsTable.grantReadWriteData(onDisconnectFn);
+    roomsTable.grantReadWriteData(onSignalingFn);
+    roomsTable.grantReadWriteData(onJoinFn);
 
     // WebSocket API
     const webSocketApi = new apigatewayv2.WebSocketApi(this, 'WebSocketApi', {
       connectRouteOptions: { integration: new WebSocketLambdaIntegration('ConnectIntegration', onConnectFn) },
       disconnectRouteOptions: { integration: new WebSocketLambdaIntegration('DisconnectIntegration', onDisconnectFn) },
       defaultRouteOptions: { integration: new WebSocketLambdaIntegration('DefaultIntegration', onSignalingFn) },
+    });
+
+    webSocketApi.addRoute('join', {
+      integration: new WebSocketLambdaIntegration('JoinIntegration', onJoinFn),
     });
 
     const stage = new apigatewayv2.WebSocketStage(this, 'ProductionStage', {
@@ -61,6 +93,16 @@ export class BackendStack extends cdk.Stack {
     });
 
     onSignalingFn.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
+      actions: ['execute-api:ManageConnections'],
+      resources: [`arn:aws:execute-api:${this.region}:${this.account}:${webSocketApi.apiId}/*`],
+    }));
+
+    onJoinFn.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
+      actions: ['execute-api:ManageConnections'],
+      resources: [`arn:aws:execute-api:${this.region}:${this.account}:${webSocketApi.apiId}/*`],
+    }));
+
+    onDisconnectFn.addToRolePolicy(new cdk.aws_iam.PolicyStatement({
       actions: ['execute-api:ManageConnections'],
       resources: [`arn:aws:execute-api:${this.region}:${this.account}:${webSocketApi.apiId}/*`],
     }));
@@ -96,15 +138,16 @@ export class BackendStack extends cdk.Stack {
     });
 
     // フロントエンドデプロイ（WebSocket URLを自動設定）
-    const appJsContent = fs.readFileSync(path.join(__dirname, '../../frontend/app.js'), 'utf8')
+    const canvasJsContent = fs.readFileSync(path.join(__dirname, '../../frontend/canvas.js'), 'utf8')
       .replace('WEBSOCKET_URL_PLACEHOLDER', stage.url);
 
     new s3deploy.BucketDeployment(this, 'DeployFrontend', {
       sources: [
         s3deploy.Source.asset(path.join(__dirname, '../../frontend'), {
-          exclude: ['node_modules', 'package*.json', 'README.md', '*.test.js', 'app.js']
+          exclude: ['node_modules', 'package*.json', 'README.md', '*.test.js', '__tests__', 'app.js', 'canvas.js', 'index.html']
         }),
-        s3deploy.Source.data('app.js', appJsContent)
+        s3deploy.Source.data('index.html', fs.readFileSync(path.join(__dirname, '../../frontend/menu.html'), 'utf8')),
+        s3deploy.Source.data('canvas.js', canvasJsContent)
       ],
       destinationBucket: frontendBucket,
     });

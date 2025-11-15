@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>echa25 - メニュー</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎨</text></svg>">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+    .menu-container {
+      background: white;
+      padding: 40px;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+      width: 400px;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      color: #333;
+      font-size: 32px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #555;
+      font-weight: 500;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #ddd;
+      border-radius: 6px;
+      font-size: 16px;
+      transition: border-color 0.3s;
+    }
+    input:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      background: #667eea;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      font-size: 18px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #5568d3;
+    }
+    button:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+    .error {
+      color: #dc3545;
+      font-size: 14px;
+      margin-top: 5px;
+    }
+  </style>
+</head>
+<body>
+  <div class="menu-container">
+    <h1>🎨 echa25</h1>
+    <form id="joinForm">
+      <div class="form-group">
+        <label for="roomId">合言葉</label>
+        <input type="text" id="roomId" maxlength="100" required>
+        <div id="roomIdError" class="error"></div>
+      </div>
+      <div class="form-group">
+        <label for="nickname">ニックネーム</label>
+        <input type="text" id="nickname" maxlength="50" required>
+        <div id="nicknameError" class="error"></div>
+      </div>
+      <button type="submit">部屋に入る</button>
+    </form>
+  </div>
+
+  <script>
+    const form = document.getElementById('joinForm');
+    const roomIdInput = document.getElementById('roomId');
+    const nicknameInput = document.getElementById('nickname');
+    const roomIdError = document.getElementById('roomIdError');
+    const nicknameError = document.getElementById('nicknameError');
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      roomIdError.textContent = '';
+      nicknameError.textContent = '';
+
+      const roomId = roomIdInput.value.trim();
+      const nickname = nicknameInput.value.trim();
+
+      if (!roomId) {
+        roomIdError.textContent = '合言葉を入力してください';
+        return;
+      }
+
+      if (!nickname) {
+        nicknameError.textContent = 'ニックネームを入力してください';
+        return;
+      }
+
+      const params = new URLSearchParams({ roomId, nickname });
+      window.location.href = `canvas.html?${params.toString()}`;
+    });
+  </script>
+</body>
+</html>
