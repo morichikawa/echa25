@@ -13,8 +13,17 @@ let members = [];
 let peerConnections = new Map();
 let dataChannels = new Map();
 
+// マウスポインター管理
+let cursors = new Map();
+let myColor = null;
+const CURSOR_COLORS = ['#FF1744', '#00E676', '#2979FF', '#FF9100', '#E040FB', '#00E5FF', '#FFEA00', '#FF3D00'];
+
+function getRandomColor() {
+  return CURSOR_COLORS[Math.floor(Math.random() * CURSOR_COLORS.length)];
+}
+
 // Canvas設定
-let canvasContainer, colorPicker, sizePicker, eraserSizePicker, clearBtn, penBtn, eraserBtn, wsStatus, rtcStatus;
+let canvasContainer, colorPicker, sizePicker, eraserSizePicker, clearBtn, penBtn, eraserBtn, wsStatus, rtcStatus, cursorColorPicker;
 let layers = [];
 let activeLayerId = 0;
 let nextLayerId = 1;
@@ -284,6 +293,7 @@ function connectWebSocket() {
         peerConnections.delete(data.userId);
       }
       dataChannels.delete(data.userId);
+      removeRemoteCursor(data.userId);
     } else if (data.type === 'signal') {
       handleSignal(data.fromUserId, data.data);
     }
@@ -313,7 +323,7 @@ function createPeerConnection(userId) {
   
   pc.ondatachannel = (event) => {
     dataChannels.set(userId, event.channel);
-    setupDataChannel(event.channel);
+    setupDataChannel(event.channel, userId);
   };
   
   pc.onconnectionstatechange = () => {
@@ -323,7 +333,7 @@ function createPeerConnection(userId) {
   if (myUserId < userId) {
     const dc = pc.createDataChannel('draw');
     dataChannels.set(userId, dc);
-    setupDataChannel(dc);
+    setupDataChannel(dc, userId);
     
     pc.createOffer().then(offer => {
       return pc.setLocalDescription(offer);
@@ -337,9 +347,15 @@ function createPeerConnection(userId) {
   }
 }
 
-function setupDataChannel(dc) {
+function setupDataChannel(dc, userId) {
   dc.onmessage = (event) => {
     const data = JSON.parse(event.data);
+    
+    if (data.type === 'cursor') {
+      updateRemoteCursor(userId, data.x, data.y, data.color);
+      return;
+    }
+    
     const layer = layers.find(l => l.id === data.layerId) || getActiveLayer();
     
     if (data.type === 'clear' && layer) {
@@ -373,7 +389,7 @@ async function handleSignal(fromUserId, data) {
       
       pc.ondatachannel = (event) => {
         dataChannels.set(fromUserId, event.channel);
-        setupDataChannel(event.channel);
+        setupDataChannel(event.channel, fromUserId);
       };
       
       pc.onconnectionstatechange = () => updateRTCStatus();
@@ -487,6 +503,60 @@ function draw(e) {
   }
   
   [lastX, lastY] = [x, y];
+  sendCursorPosition(e);
+}
+
+function sendCursorPosition(e) {
+  if (isPanning || !canvasContainer) return;
+  
+  const containerRect = canvasContainer.getBoundingClientRect();
+  const x = (e.clientX - containerRect.left - offsetX) / scale;
+  const y = (e.clientY - containerRect.top - offsetY) / scale;
+  
+  const message = JSON.stringify({
+    type: 'cursor',
+    x, y,
+    color: myColor
+  });
+  
+  dataChannels.forEach(dc => {
+    if (dc.readyState === 'open') {
+      dc.send(message);
+    }
+  });
+}
+
+function updateRemoteCursor(userId, x, y, color) {
+  let cursor = cursors.get(userId);
+  
+  if (!cursor) {
+    const member = members.find(m => m.userId === userId);
+    const nickname = member ? member.nickname : 'User';
+    
+    cursor = document.createElement('div');
+    cursor.className = 'remote-cursor';
+    cursor.innerHTML = `
+      <svg width="20" height="20" viewBox="0 0 20 20" style="filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));">
+        <path d="M0,0 L0,16 L5,11 L8,18 L10,17 L7,10 L13,10 Z" fill="${color}" stroke="white" stroke-width="0.5"/>
+      </svg>
+      <span class="cursor-nickname" style="color: ${color};">${nickname}</span>
+    `;
+    canvasContainer.appendChild(cursor);
+    cursors.set(userId, cursor);
+  }
+  
+  const screenX = x * scale + offsetX;
+  const screenY = y * scale + offsetY;
+  cursor.style.left = `${screenX}px`;
+  cursor.style.top = `${screenY}px`;
+}
+
+function removeRemoteCursor(userId) {
+  const cursor = cursors.get(userId);
+  if (cursor) {
+    cursor.remove();
+    cursors.delete(userId);
+  }
 }
 
 function stopDrawing() {
@@ -524,6 +594,7 @@ document.addEventListener('DOMContentLoaded', () => {
   eraserBtn = document.getElementById('eraserBtn');
   wsStatus = document.getElementById('wsStatus');
   rtcStatus = document.getElementById('rtcStatus');
+  cursorColorPicker = document.getElementById('cursorColorPicker');
   
   const bgLayer = createLayer('背景');
   bgLayer.ctx.fillStyle = '#FFFFFF';
@@ -540,6 +611,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.addEventListener('mousemove', (e) => {
     if (isPanning) pan(e);
     else if (isDrawing) draw(e);
+    else sendCursorPosition(e);
   });
   
   document.addEventListener('mouseup', () => {
@@ -630,6 +702,13 @@ document.addEventListener('DOMContentLoaded', () => {
     if (confirm('部屋を退出しますか？')) {
       window.location.href = 'menu.html';
     }
+  });
+  
+  myColor = getRandomColor();
+  cursorColorPicker.value = myColor;
+  
+  cursorColorPicker.addEventListener('input', (e) => {
+    myColor = e.target.value;
   });
   
   connectWebSocket();
