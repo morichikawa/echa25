@@ -4,14 +4,18 @@ echa25のフロントエンドコード
 
 ## ローカル開発
 
-任意のHTTPサーバーで起動:
+開発時はキャッシュを無効化してサーバーを起動（推奨）:
+
+```bash
+# Node.js (http-server) - キャッシュ無効化
+npx http-server -p 8000 -c-1
+```
+
+その他のHTTPサーバー:
 
 ```bash
 # Python
 python3 -m http.server 8000
-
-# Node.js (http-server)
-npx http-server -p 8000
 
 # PHP
 php -S localhost:8000
@@ -24,15 +28,6 @@ php -S localhost:8000
 - `index.html` - メインHTML
 - `style.css` - スタイル
 - `app.js` - WebRTC + Canvas描画ロジック
-
-## キャッシュ対策
-
-開発時にブラウザキャッシュを無効化する場合は、以下のコマンドでサーバーを起動:
-
-```bash
-# http-serverでキャッシュ無効化
-npx http-server -p 8000 -c-1
-```
 
 ## 設定
 
