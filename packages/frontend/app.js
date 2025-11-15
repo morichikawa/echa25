@@ -270,16 +270,45 @@ function connectWebSocket() {
   };
   
   ws.onmessage = async (event) => {
-    const data = JSON.parse(event.data);
-    
-    if (data.type === 'offer') {
-      await handleOffer(data);
-    } else if (data.type === 'answer') {
-      await handleAnswer(data);
-    } else if (data.type === 'ice-candidate') {
-      await handleIceCandidate(data);
+    const msg = JSON.parse(event.data);
+
+    // --- WebRTC 系をそのまま残すなら ---
+    if (msg.type === 'offer') {
+      await handleOffer(msg);
+      return;
+    } else if (msg.type === 'answer') {
+      await handleAnswer(msg);
+      return;
+    } else if (msg.type === 'ice-candidate') {
+      await handleIceCandidate(msg);
+      return;
+    }
+
+    // --- ここから描画同期用（パターンA） ---
+    if (msg.type === 'draw') {
+      const data = msg; // サーバがそのまま中継する設計なら msg 自体がデータ
+
+      const layer = layers.find(l => l.id === data.layerId) || getActiveLayer();
+      if (layer) {
+        const savedTool = currentTool;
+        currentTool = data.tool || 'pen';
+        drawLine(
+          layer.ctx,
+          data.x1, data.y1,
+          data.x2, data.y2,
+          data.color,
+          data.size
+        );
+        currentTool = savedTool;
+      }
+    } else if (msg.type === 'clear') {
+      const layer = layers.find(l => l.id === msg.layerId) || getActiveLayer();
+      if (layer) {
+        layer.ctx.clearRect(0, 0, layer.canvas.width, layer.canvas.height);
+      }
     }
   };
+
 }
 
 // WebRTC設定
@@ -440,20 +469,30 @@ function draw(e) {
   const layer = getActiveLayer();
   
   if (layer) {
+    // ① 自分のキャンバスに描く
     drawLine(layer.ctx, lastX, lastY, x, y, currentColor, currentSize);
-    
-    if (dataChannel && dataChannel.readyState === 'open') {
-      dataChannel.send(JSON.stringify({
-        x1: lastX, y1: lastY, x2: x, y2: y,
-        color: currentColor, size: currentSize,
+
+    // ② サーバに「描いたよ」というイベントを送る（WebSocket）
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      const payload = {
+        type: 'draw',               // 種別（あとで onmessage で見る用）
+        layerId: activeLayerId,
+        x1: lastX,
+        y1: lastY,
+        x2: x,
+        y2: y,
+        color: currentColor,
+        size: currentSize,
         tool: currentTool,
-        layerId: activeLayerId
-      }));
+      };
+
+      ws.send(JSON.stringify(payload));
     }
   }
   
   [lastX, lastY] = [x, y];
 }
+
 
 function stopDrawing() {
   isDrawing = false;
@@ -617,12 +656,19 @@ document.addEventListener('DOMContentLoaded', () => {
   clearBtn.addEventListener('click', () => {
     const layer = getActiveLayer();
     if (layer) {
+      // 自分のキャンバスをクリア
       layer.ctx.clearRect(0, 0, layer.canvas.width, layer.canvas.height);
-      if (dataChannel && dataChannel.readyState === 'open') {
-        dataChannel.send(JSON.stringify({ type: 'clear', layerId: activeLayerId }));
+
+      // 他のクライアントにも通知
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({
+          type: 'clear',
+          layerId: activeLayerId,
+        }));
       }
     }
   });
+
   
   // グローバル関数を公開
   window.deleteLayer = deleteLayer;
