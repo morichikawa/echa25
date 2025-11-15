@@ -49,6 +49,10 @@ const CANVAS_HEIGHT = 2000;
 const MIN_SCALE = 0.1;
 const MAX_SCALE = 5;
 
+let lastPinchDistance = 0;
+let isPinching = false;
+let lastTouchCenter = { x: 0, y: 0 };
+
 // レイヤー管理
 function createLayer(name) {
   const canvas = document.createElement('canvas');
@@ -122,6 +126,8 @@ function renameLayer(id, newName) {
   }
 }
 
+let layerDragState = { isDragging: false, startIndex: null, currentIndex: null };
+
 function updateLayerList() {
   const layerList = document.getElementById('layerList');
   if (!layerList) return;
@@ -132,9 +138,13 @@ function updateLayerList() {
     const actualIndex = layers.length - 1 - displayIndex;
     const item = document.createElement('div');
     item.className = 'layer-item' + (layer.id === activeLayerId ? ' active' : '');
-    item.draggable = true;
     item.dataset.layerId = layer.id;
     item.dataset.index = actualIndex;
+    
+    const dragHandle = document.createElement('button');
+    dragHandle.textContent = '☰';
+    dragHandle.className = 'drag-handle';
+    dragHandle.title = 'ドラッグで移動';
     
     const visibilityBtn = document.createElement('button');
     visibilityBtn.textContent = layer.visible ? '👁' : '👁🗨';
@@ -160,6 +170,30 @@ function updateLayerList() {
       e.stopPropagation();
     });
     
+    const upBtn = document.createElement('button');
+    upBtn.textContent = '▲';
+    upBtn.className = 'move-btn';
+    upBtn.title = '上に移動';
+    upBtn.disabled = actualIndex === layers.length - 1;
+    upBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (actualIndex < layers.length - 1) {
+        moveLayer(actualIndex, actualIndex + 1);
+      }
+    });
+    
+    const downBtn = document.createElement('button');
+    downBtn.textContent = '▼';
+    downBtn.className = 'move-btn';
+    downBtn.title = '下に移動';
+    downBtn.disabled = actualIndex === 0;
+    downBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (actualIndex > 0) {
+        moveLayer(actualIndex, actualIndex - 1);
+      }
+    });
+    
     const deleteBtn = document.createElement('button');
     deleteBtn.textContent = '×';
     deleteBtn.className = 'delete-btn';
@@ -168,34 +202,109 @@ function updateLayerList() {
       deleteLayer(layer.id);
     });
     
-    item.appendChild(visibilityBtn);
+    const buttonGroup = document.createElement('div');
+    buttonGroup.className = 'layer-buttons';
+    buttonGroup.appendChild(dragHandle);
+    buttonGroup.appendChild(visibilityBtn);
+    buttonGroup.appendChild(upBtn);
+    buttonGroup.appendChild(downBtn);
+    buttonGroup.appendChild(deleteBtn);
+    
     item.appendChild(nameInput);
-    item.appendChild(deleteBtn);
+    item.appendChild(buttonGroup);
     
-    item.addEventListener('click', () => setActiveLayer(layer.id));
+    item.addEventListener('click', (e) => {
+      if (e.target !== dragHandle) setActiveLayer(layer.id);
+    });
     
-    item.addEventListener('dragstart', (e) => {
-      e.dataTransfer.effectAllowed = 'move';
-      e.dataTransfer.setData('text/plain', actualIndex);
+    dragHandle.addEventListener('pointerdown', (e) => {
+      layerDragState = { isDragging: true, startIndex: actualIndex, currentIndex: actualIndex };
       item.classList.add('dragging');
+      e.stopPropagation();
+      e.preventDefault();
     });
     
-    item.addEventListener('dragend', () => item.classList.remove('dragging'));
-    item.addEventListener('dragover', (e) => {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
+    item.addEventListener('pointerenter', (e) => {
+      if (layerDragState.isDragging) {
+        const draggingItem = layerList.querySelector('.dragging');
+        if (draggingItem && draggingItem !== item) {
+          const rect = item.getBoundingClientRect();
+          const threshold = rect.height * 0.3;
+          const relativeY = e.clientY - rect.top;
+          
+          if (relativeY < threshold) {
+            item.parentNode.insertBefore(draggingItem, item);
+          } else if (relativeY > rect.height - threshold) {
+            item.parentNode.insertBefore(draggingItem, item.nextSibling);
+          }
+          layerDragState.currentIndex = actualIndex;
+        }
+      }
     });
     
-    item.addEventListener('drop', (e) => {
-      e.preventDefault();
-      const fromIndex = parseInt(e.dataTransfer.getData('text/plain'));
-      const toIndex = actualIndex;
-      if (fromIndex !== toIndex) moveLayer(fromIndex, toIndex);
+    item.addEventListener('pointermove', (e) => {
+      if (layerDragState.isDragging) {
+        const draggingItem = layerList.querySelector('.dragging');
+        if (draggingItem && draggingItem !== item) {
+          const rect = item.getBoundingClientRect();
+          const threshold = rect.height * 0.3;
+          const relativeY = e.clientY - rect.top;
+          
+          if (relativeY < threshold) {
+            item.parentNode.insertBefore(draggingItem, item);
+          } else if (relativeY > rect.height - threshold) {
+            item.parentNode.insertBefore(draggingItem, item.nextSibling);
+          }
+        }
+      }
+    });
+    
+    dragHandle.addEventListener('pointermove', (e) => {
+      if (layerDragState.isDragging) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
+    });
+    
+    dragHandle.addEventListener('pointerup', (e) => {
+      if (layerDragState.isDragging) {
+        e.stopPropagation();
+        e.preventDefault();
+      }
     });
     
     layerList.appendChild(item);
   });
 }
+
+document.addEventListener('pointerup', () => {
+  if (layerDragState.isDragging) {
+    const layerList = document.getElementById('layerList');
+    if (layerList) {
+      const items = Array.from(layerList.querySelectorAll('.layer-item'));
+      const draggingItem = layerList.querySelector('.dragging');
+      if (draggingItem) {
+        const newIndex = items.indexOf(draggingItem);
+        const actualNewIndex = layers.length - 1 - newIndex;
+        if (layerDragState.startIndex !== actualNewIndex) {
+          moveLayer(layerDragState.startIndex, actualNewIndex);
+        }
+        draggingItem.classList.remove('dragging');
+      }
+    }
+    layerDragState = { isDragging: false, startIndex: null, currentIndex: null };
+  }
+});
+
+document.addEventListener('pointercancel', () => {
+  if (layerDragState.isDragging) {
+    const layerList = document.getElementById('layerList');
+    if (layerList) {
+      layerList.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+    }
+    layerDragState = { isDragging: false, startIndex: null, currentIndex: null };
+  }
+});
 
 // メンバーリスト更新
 function updateMembersList() {
@@ -469,27 +578,151 @@ function updateCanvasPosition() {
 }
 
 // 描画
+function getPointerPosition(e) {
+  const containerRect = canvasContainer.getBoundingClientRect();
+  return {
+    x: (e.clientX - containerRect.left - offsetX) / scale,
+    y: (e.clientY - containerRect.top - offsetY) / scale
+  };
+}
+
 function startDrawing(e) {
   if (e.button === 2) return;
+  if (isPinching) return;
   isDrawing = true;
-  const containerRect = canvasContainer.getBoundingClientRect();
-  lastX = (e.clientX - containerRect.left - offsetX) / scale;
-  lastY = (e.clientY - containerRect.top - offsetY) / scale;
+  const pos = getPointerPosition(e);
+  lastX = pos.x;
+  lastY = pos.y;
+  if (e.cancelable) e.preventDefault();
+}
+
+function handleTouchStart(e) {
+  if (e.touches.length === 2) {
+    isPinching = true;
+    isDrawing = false;
+    const touch1 = e.touches[0];
+    const touch2 = e.touches[1];
+    lastPinchDistance = Math.hypot(
+      touch2.clientX - touch1.clientX,
+      touch2.clientY - touch1.clientY
+    );
+    lastTouchCenter = {
+      x: (touch1.clientX + touch2.clientX) / 2,
+      y: (touch1.clientY + touch2.clientY) / 2
+    };
+    e.preventDefault();
+  } else if (e.touches.length === 1 && !isPinching) {
+    const touch = e.touches[0];
+    const rect = canvasContainer.getBoundingClientRect();
+    const x = (touch.clientX - rect.left - offsetX) / scale;
+    const y = (touch.clientY - rect.top - offsetY) / scale;
+    isDrawing = true;
+    lastX = x;
+    lastY = y;
+  }
+}
+
+function handleTouchMove(e) {
+  if (e.touches.length === 2) {
+    if (!isPinching) {
+      isPinching = true;
+      isDrawing = false;
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      lastPinchDistance = Math.hypot(
+        touch2.clientX - touch1.clientX,
+        touch2.clientY - touch1.clientY
+      );
+      lastTouchCenter = {
+        x: (touch1.clientX + touch2.clientX) / 2,
+        y: (touch1.clientY + touch2.clientY) / 2
+      };
+    } else {
+      const touch1 = e.touches[0];
+      const touch2 = e.touches[1];
+      const distance = Math.hypot(
+        touch2.clientX - touch1.clientX,
+        touch2.clientY - touch1.clientY
+      );
+      const centerX = (touch1.clientX + touch2.clientX) / 2;
+      const centerY = (touch1.clientY + touch2.clientY) / 2;
+      
+      if (lastPinchDistance > 0) {
+        const delta = distance / lastPinchDistance;
+        const newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale * delta));
+        
+        if (newScale !== scale) {
+          const rect = canvasContainer.getBoundingClientRect();
+          const relCenterX = centerX - rect.left;
+          const relCenterY = centerY - rect.top;
+          const canvasX = (relCenterX - offsetX) / scale;
+          const canvasY = (relCenterY - offsetY) / scale;
+          offsetX = relCenterX - canvasX * newScale;
+          offsetY = relCenterY - canvasY * newScale;
+          scale = newScale;
+          updateCanvasPosition();
+        }
+      }
+      
+      offsetX += centerX - lastTouchCenter.x;
+      offsetY += centerY - lastTouchCenter.y;
+      updateCanvasPosition();
+      
+      lastPinchDistance = distance;
+      lastTouchCenter = { x: centerX, y: centerY };
+    }
+    e.preventDefault();
+  } else if (e.touches.length === 1 && isDrawing && !isPinching) {
+    const touch = e.touches[0];
+    const rect = canvasContainer.getBoundingClientRect();
+    const x = (touch.clientX - rect.left - offsetX) / scale;
+    const y = (touch.clientY - rect.top - offsetY) / scale;
+    const layer = getActiveLayer();
+    
+    if (layer) {
+      drawLine(layer.ctx, lastX, lastY, x, y, currentColor, currentSize);
+      
+      const message = JSON.stringify({
+        x1: lastX, y1: lastY, x2: x, y2: y,
+        color: currentColor, size: currentSize,
+        tool: currentTool,
+        layerId: activeLayerId
+      });
+      
+      dataChannels.forEach(dc => {
+        if (dc.readyState === 'open') {
+          dc.send(message);
+        }
+      });
+    }
+    
+    lastX = x;
+    lastY = y;
+    e.preventDefault();
+  }
+}
+
+function handleTouchEnd(e) {
+  if (e.touches.length < 2) {
+    isPinching = false;
+    lastPinchDistance = 0;
+  }
+  if (e.touches.length === 0) {
+    isDrawing = false;
+  }
 }
 
 function draw(e) {
   if (!isDrawing || isPanning) return;
   
-  const containerRect = canvasContainer.getBoundingClientRect();
-  const x = (e.clientX - containerRect.left - offsetX) / scale;
-  const y = (e.clientY - containerRect.top - offsetY) / scale;
+  const pos = getPointerPosition(e);
   const layer = getActiveLayer();
   
   if (layer) {
-    drawLine(layer.ctx, lastX, lastY, x, y, currentColor, currentSize);
+    drawLine(layer.ctx, lastX, lastY, pos.x, pos.y, currentColor, currentSize);
     
     const message = JSON.stringify({
-      x1: lastX, y1: lastY, x2: x, y2: y,
+      x1: lastX, y1: lastY, x2: pos.x, y2: pos.y,
       color: currentColor, size: currentSize,
       tool: currentTool,
       layerId: activeLayerId
@@ -502,20 +735,21 @@ function draw(e) {
     });
   }
   
-  [lastX, lastY] = [x, y];
+  lastX = pos.x;
+  lastY = pos.y;
   sendCursorPosition(e);
+  e.preventDefault();
 }
 
 function sendCursorPosition(e) {
   if (isPanning || !canvasContainer) return;
   
-  const containerRect = canvasContainer.getBoundingClientRect();
-  const x = (e.clientX - containerRect.left - offsetX) / scale;
-  const y = (e.clientY - containerRect.top - offsetY) / scale;
+  const pos = getPointerPosition(e);
   
   const message = JSON.stringify({
     type: 'cursor',
-    x, y,
+    x: pos.x,
+    y: pos.y,
     color: myColor
   });
   
@@ -603,24 +837,33 @@ document.addEventListener('DOMContentLoaded', () => {
   const layer1 = createLayer('レイヤー 1');
   setActiveLayer(layer1.id);
   
-  canvasContainer.addEventListener('mousedown', (e) => {
+  canvasContainer.addEventListener('pointerdown', (e) => {
     if (e.button === 2) startPan(e);
     else startDrawing(e);
   });
   
-  document.addEventListener('mousemove', (e) => {
+  document.addEventListener('pointermove', (e) => {
     if (isPanning) pan(e);
     else if (isDrawing) draw(e);
     else sendCursorPosition(e);
   });
   
-  document.addEventListener('mouseup', () => {
+  document.addEventListener('pointerup', () => {
+    stopDrawing();
+    stopPan();
+  });
+  
+  document.addEventListener('pointercancel', () => {
     stopDrawing();
     stopPan();
   });
   
   canvasContainer.addEventListener('contextmenu', (e) => e.preventDefault());
   canvasContainer.addEventListener('wheel', zoom, { passive: false });
+  canvasContainer.addEventListener('touchstart', handleTouchStart, { passive: false });
+  canvasContainer.addEventListener('touchmove', handleTouchMove, { passive: false });
+  canvasContainer.addEventListener('touchend', handleTouchEnd);
+  canvasContainer.addEventListener('touchcancel', handleTouchEnd);
   
   document.getElementById('addLayerBtn').addEventListener('click', () => {
     const layer = createLayer();
