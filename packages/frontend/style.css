@@ -86,6 +86,7 @@ h1 {
   left: 0;
   cursor: inherit;
   transform-origin: 0 0;
+  touch-action: none;
 }
 
 #sidePanel {
@@ -165,11 +166,17 @@ h1 {
   background: white;
   border: 2px solid #ddd;
   border-radius: 4px;
-  cursor: move;
+  cursor: pointer;
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 5px;
   user-select: none;
+}
+
+.layer-buttons {
+  display: flex;
+  gap: 5px;
+  align-items: center;
 }
 
 .layer-item.dragging {
@@ -187,6 +194,23 @@ h1 {
   border: none;
   border-radius: 3px;
   cursor: pointer;
+  flex-shrink: 0;
+}
+
+.drag-handle {
+  background: transparent;
+  font-size: 16px;
+  padding: 0 4px;
+  cursor: move;
+  touch-action: none;
+  color: #666;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.drag-handle:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #000;
 }
 
 .visibility-btn {
@@ -199,6 +223,22 @@ h1 {
   background: rgba(0, 0, 0, 0.05);
 }
 
+.move-btn {
+  background: #f0f0f0;
+  color: #333;
+  font-size: 10px;
+  padding: 2px 4px;
+}
+
+.move-btn:hover:not(:disabled) {
+  background: #e0e0e0;
+}
+
+.move-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
 .delete-btn {
   background: #dc3545;
   color: white;
@@ -209,13 +249,12 @@ h1 {
 }
 
 .layer-name-input {
-  flex: 1;
-  padding: 2px 4px;
-  border: none;
-  background: transparent;
+  padding: 4px 6px;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 3px;
   font-size: 13px;
   width: 100%;
-  min-width: 0;
 }
 
 .layer-name-input:focus {
