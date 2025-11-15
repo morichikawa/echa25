@@ -25,6 +25,15 @@ php -S localhost:8000
 - `style.css` - スタイル
 - `app.js` - WebRTC + Canvas描画ロジック
 
+## キャッシュ対策
+
+開発時にブラウザキャッシュを無効化する場合は、以下のコマンドでサーバーを起動:
+
+```bash
+# http-serverでキャッシュ無効化
+npx http-server -p 8000 -c-1
+```
+
 ## 設定
 
 `app.js` の `WS_URL` をバックエンドのWebSocket URLに変更:
