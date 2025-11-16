@@ -49,12 +49,19 @@ exports.handler = async (event) => {
         }));
       }
 
+      const members = remaining.Items.map(m => ({
+        userId: m.userId,
+        nickname: m.nickname,
+        color: m.color,
+        isHost: m.connectionId === newHost.connectionId || m.isHost
+      }));
+
       const apigw = new ApiGatewayManagementApiClient({ endpoint: `https://${domain}/${stage}` });
       const notify = remaining.Items.map(async (m) => {
         try {
           await apigw.send(new PostToConnectionCommand({
             ConnectionId: m.connectionId,
-            Data: JSON.stringify({ type: 'user-left', userId, newHost: newHost.userId }),
+            Data: JSON.stringify({ type: 'user-left', userId, members }),
           }));
         } catch (e) {}
       });
