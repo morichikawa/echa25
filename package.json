@@ -2,13 +2,12 @@
   "name": "echa25",
   "version": "1.0.0",
   "scripts": {
-    "install": "cd packages/backend && npm install",
-    "deploy": "npm run cdk --prefix packages/backend deploy",
+    "install": "cd packages/backend && npm install && cd ../frontend && npm install",
+    "build": "cd packages/frontend && VITE_WS_URL=${WS_URL:-WEBSOCKET_URL_PLACEHOLDER} npm run build",
+    "dev": "cd packages/frontend && npm run dev",
+    "deploy": "export ENV_SUFFIX=$(grep ENV_SUFFIX packages/backend/.env | cut -d= -f2) && export WS_URL=$(aws cloudformation describe-stacks --stack-name Echa25BackendStack-$ENV_SUFFIX --query 'Stacks[0].Outputs[?OutputKey==`WebSocketURL`].OutputValue' --output text 2>/dev/null || echo 'WEBSOCKET_URL_PLACEHOLDER') && npm run build && npm run cdk --prefix packages/backend deploy",
     "destroy": "npm run cdk --prefix packages/backend destroy -- --force",
     "diff": "npm run cdk --prefix packages/backend diff",
-    "synth": "npm run cdk --prefix packages/backend synth",
-    "dev": "npx http-server packages/frontend -p 8000 -o -c-1",
-    "test": "cd packages/frontend && npm test",
-    "test:install": "cd packages/frontend && npm install"
+    "synth": "npm run cdk --prefix packages/backend synth"
   }
 }

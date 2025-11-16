@@ -122,6 +122,7 @@ export class BackendStack extends cdk.Stack {
     const frontendBucket = new s3.Bucket(this, 'FrontendBucket', {
       bucketName: `echa25-frontend-${envSuffix}-${this.account}`,
       websiteIndexDocument: 'index.html',
+      websiteErrorDocument: 'index.html',
       publicReadAccess: true,
       blockPublicAccess: s3.BlockPublicAccess.BLOCK_ACLS,
       removalPolicy: cdk.RemovalPolicy.DESTROY,
@@ -149,17 +150,10 @@ export class BackendStack extends cdk.Stack {
       description: 'Frontend S3 Bucket Name',
     });
 
-    // フロントエンドデプロイ（WebSocket URLを自動設定）
-    const canvasJsContent = fs.readFileSync(path.join(__dirname, '../../frontend/canvas.js'), 'utf8')
-      .replace('WEBSOCKET_URL_PLACEHOLDER', stage.url);
-
+    // フロントエンドデプロイ（Vite build output）
     new s3deploy.BucketDeployment(this, 'DeployFrontend', {
       sources: [
-        s3deploy.Source.asset(path.join(__dirname, '../../frontend'), {
-          exclude: ['node_modules', 'package*.json', 'README.md', '*.test.js', '__tests__', 'app.js', 'canvas.js', 'index.html']
-        }),
-        s3deploy.Source.data('index.html', fs.readFileSync(path.join(__dirname, '../../frontend/menu.html'), 'utf8')),
-        s3deploy.Source.data('canvas.js', canvasJsContent)
+        s3deploy.Source.asset(path.join(__dirname, '../../frontend/dist'))
       ],
       destinationBucket: frontendBucket,
     });
