@@ -71,7 +71,7 @@ echa25/
 │       │   └── utils/              # ユーティリティ関数
 │       ├── vite.config.ts
 │       └── package.json
-├── doc/                            # ドキュメント
+├── documents/                      # ドキュメント
 ├── package.json                    # ルートスクリプト
 └── README.md
 ```
@@ -281,12 +281,12 @@ npm run destroy
 
 ## ドキュメント
 
-詳細なドキュメントは`doc/`ディレクトリを参照してください。
+詳細なドキュメントは`documents/`ディレクトリを参照してください。
 
-- [requirements.md](doc/requirements.md) - プロジェクト要件
-- [architecture.md](doc/architecture.md) - システムアーキテクチャ
-- [implementation-plan.md](doc/implementation-plan.md) - 実装計画
-- [development.md](doc/development.md) - 開発ガイド
+- [requirements.md](documents/requirements.md) - プロジェクト要件
+- [architecture.md](documents/architecture.md) - システムアーキテクチャ
+- [implementation-plan.md](documents/implementation-plan.md) - 実装計画
+- [development.md](documents/development.md) - 開発ガイド
 
 ## 注意事項
 
