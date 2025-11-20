@@ -1,4 +1,4 @@
-import { Box, AppBar, Toolbar as MuiToolbar, Typography, Button } from '@mui/material'
+import { Box, AppBar, Toolbar as MuiToolbar, Typography, Button, CircularProgress, Backdrop } from '@mui/material'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { Toolbar, Canvas, MemberPanel } from '../components/organisms'
@@ -17,6 +17,8 @@ function CanvasPage() {
 
   const { tool, color, size, setTool, setColor, setSize } = useDraw()
   const [myUserId, setMyUserId] = useState('')
+  const [isConnecting, setIsConnecting] = useState(false)
+
 
   // URLパラメータからセッション設定
   useEffect(() => {
@@ -29,15 +31,30 @@ function CanvasPage() {
 
 
 
+  const { members } = useWebRTCContext()
+
+
+
   const handleMessage = (data: any) => {
     if (data.type === 'joined') {
       console.log('✅ Joined room:', data)
       setMyUserId(data.userId)
       setMembers(data.members)
+      const otherMembers = data.members.filter((m: any) => m.userId !== data.userId)
+      if (otherMembers.length > 0) {
+        setIsConnecting(true)
+      }
+      data.members.forEach((member: any) => {
+        if (member.userId !== data.userId) {
+          console.log('🔗 Creating connection to existing member:', member.nickname)
+          createPeerConnection(member.userId)
+        }
+      })
     } else if (data.type === 'user-joined') {
       console.log('👋 User joined:', data.nickname)
       setMembers(data.members)
       if (data.userId) {
+        console.log('🔗 Creating connection to new user:', data.nickname)
         createPeerConnection(data.userId)
       }
     } else if (data.type === 'user-left') {
@@ -49,6 +66,8 @@ function CanvasPage() {
     }
   }
 
+  const { connectedPeers } = useWebRTCContext()
+
   const { ws } = useWebSocket(
     searchParams.get('roomId') || '',
     searchParams.get('nickname') || '',
@@ -57,6 +76,29 @@ function CanvasPage() {
   )
 
   const { createPeerConnection, handleSignal, removePeer, broadcast } = useWebRTC(ws, myUserId)
+  
+  useEffect(() => {
+    const otherMembers = members.filter((m: any) => m.userId !== myUserId)
+    const connectedCount = otherMembers.filter((m: any) => connectedPeers.has(m.userId)).length
+    
+    if (otherMembers.length > 0 && connectedCount === otherMembers.length) {
+      setIsConnecting(false)
+    }
+    
+    // Continuous retry every 5 seconds for disconnected peers
+    const interval = setInterval(() => {
+      otherMembers.forEach((member: any) => {
+        if (!connectedPeers.has(member.userId)) {
+          console.log(`🔄 Retrying connection to ${member.nickname}`)
+          createPeerConnection(member.userId)
+        }
+      })
+    }, 5000)
+    
+    return () => clearInterval(interval)
+  }, [members, myUserId, connectedPeers, createPeerConnection])
+
+
 
   const handleDraw = (data: any) => {
     console.log('📤 Broadcasting draw:', data)
@@ -109,8 +151,23 @@ function CanvasPage() {
             onDraw={handleDraw}
           />
         </Box>
-        <MemberPanel />
+        <MemberPanel myUserId={myUserId} />
       </Box>
+
+      <Backdrop open={isConnecting} sx={{ color: '#fff', zIndex: 9999 }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <CircularProgress color="inherit" />
+          <Typography variant="h6">参加者と接続中...</Typography>
+          <Button 
+            variant="outlined" 
+            color="inherit" 
+            onClick={handleLeave}
+            sx={{ mt: 2 }}
+          >
+            部屋を退出
+          </Button>
+        </Box>
+      </Backdrop>
     </Box>
   )
 }

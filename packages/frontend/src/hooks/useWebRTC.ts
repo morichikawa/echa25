@@ -3,22 +3,48 @@ import { useWebRTC as useWebRTCContext } from '../contexts/WebRTCContext'
 import { RTC_CONFIG } from '../utils/constants'
 
 export const useWebRTC = (ws: WebSocket | null, myUserId: string) => {
-  const { peerConnections, dataChannels, connectedPeers, setConnectedPeers, broadcast } = useWebRTCContext()
+  const { peerConnections, dataChannels, setConnectedPeers, broadcast } = useWebRTCContext()
   const iceCandidateQueues = useRef(new Map<string, RTCIceCandidateInit[]>())
+  const connectionAttempts = useRef(new Map<string, number>())
 
   const createPeerConnection = useCallback((userId: string) => {
-    if (peerConnections.has(userId)) return
+    // Skip if already connected via data channel
+    if (dataChannels.has(userId) && dataChannels.get(userId)?.readyState === 'open') {
+      console.log(`✅ Already connected to ${userId}, skipping`)
+      return
+    }
+    
+    if (peerConnections.has(userId)) {
+      console.log(`⚠️ Connection already exists for ${userId}, closing and recreating`)
+      const existingPc = peerConnections.get(userId)
+      if (existingPc) {
+        existingPc.close()
+        peerConnections.delete(userId)
+      }
+      const existingDc = dataChannels.get(userId)
+      if (existingDc) {
+        existingDc.close()
+        dataChannels.delete(userId)
+      }
+    }
+
+    const attempts = connectionAttempts.current.get(userId) || 0
+    connectionAttempts.current.set(userId, attempts + 1)
+    console.log(`🔗 Creating peer connection to ${userId} (attempt ${attempts + 1})`)
 
     const pc = new RTCPeerConnection(RTC_CONFIG)
     peerConnections.set(userId, pc)
 
     pc.onicecandidate = (event) => {
       if (event.candidate && ws) {
+        console.log(`🧊 Sending ICE candidate to ${userId}`)
         ws.send(JSON.stringify({
           action: 'signal',
           targetUserId: userId,
           data: { type: 'ice-candidate', candidate: event.candidate }
         }))
+      } else if (!event.candidate) {
+        console.log(`✅ ICE gathering complete for ${userId}`)
       }
     }
 
@@ -28,30 +54,38 @@ export const useWebRTC = (ws: WebSocket | null, myUserId: string) => {
     }
 
     if (myUserId < userId) {
+      console.log(`📞 Creating offer for ${userId} (I am initiator)`)
       const dc = pc.createDataChannel('draw')
       dataChannels.set(userId, dc)
       setupDataChannel(dc, userId)
 
       pc.createOffer().then(offer => {
+        console.log(`📤 Setting local description (offer) for ${userId}`)
         return pc.setLocalDescription(offer)
       }).then(() => {
+        console.log(`📤 Sending offer to ${userId}`)
         ws?.send(JSON.stringify({
           action: 'signal',
           targetUserId: userId,
           data: { type: 'offer', offer: pc.localDescription }
         }))
       })
+    } else {
+      console.log(`⏳ Waiting for offer from ${userId} (they are initiator)`)
     }
   }, [peerConnections, dataChannels, ws, myUserId])
 
   const setupDataChannel = (dc: RTCDataChannel, userId: string) => {
     dc.onopen = () => {
       console.log('✅ WebRTC connected:', userId)
-      setConnectedPeers(new Set([...connectedPeers, userId]))
+      setConnectedPeers(prev => new Set([...prev, userId]))
     }
     dc.onclose = () => {
       console.log('❌ WebRTC disconnected:', userId)
-      setConnectedPeers(new Set([...connectedPeers].filter(id => id !== userId)))
+      setConnectedPeers(prev => new Set([...prev].filter(id => id !== userId)))
+    }
+    dc.onerror = () => {
+      console.error('❌ WebRTC error for:', userId)
     }
     dc.onmessage = (event) => {
       const data = JSON.parse(event.data)
@@ -91,10 +125,12 @@ export const useWebRTC = (ws: WebSocket | null, myUserId: string) => {
   }
 
   const handleSignal = useCallback(async (fromUserId: string, data: any) => {
+    console.log(`📨 Received ${data.type} from ${fromUserId}`)
     let pc = peerConnections.get(fromUserId)
 
     if (data.type === 'offer') {
       if (!pc) {
+        console.log(`🔗 Creating peer connection for incoming offer from ${fromUserId}`)
         pc = new RTCPeerConnection(RTC_CONFIG)
         peerConnections.set(fromUserId, pc)
 
@@ -114,21 +150,27 @@ export const useWebRTC = (ws: WebSocket | null, myUserId: string) => {
         }
       }
 
+      console.log(`📥 Setting remote description (offer) from ${fromUserId}`)
       await pc.setRemoteDescription(data.offer)
+      console.log(`📞 Creating answer for ${fromUserId}`)
       const answer = await pc.createAnswer()
+      console.log(`📤 Setting local description (answer) for ${fromUserId}`)
       await pc.setLocalDescription(answer)
 
+      console.log(`📤 Sending answer to ${fromUserId}`)
       ws?.send(JSON.stringify({
         action: 'signal',
         targetUserId: fromUserId,
         data: { type: 'answer', answer: pc.localDescription }
       }))
     } else if (data.type === 'answer' && pc) {
+      console.log(`📥 Setting remote description (answer) from ${fromUserId}`)
       await pc.setRemoteDescription(data.answer)
       
       // Process queued ICE candidates
       const queue = iceCandidateQueues.current.get(fromUserId)
       if (queue) {
+        console.log(`🧊 Processing ${queue.length} queued ICE candidates for ${fromUserId}`)
         for (const candidate of queue) {
           await pc.addIceCandidate(candidate)
         }
@@ -136,9 +178,10 @@ export const useWebRTC = (ws: WebSocket | null, myUserId: string) => {
       }
     } else if (data.type === 'ice-candidate') {
       if (pc && pc.remoteDescription) {
+        console.log(`🧊 Adding ICE candidate from ${fromUserId}`)
         await pc.addIceCandidate(data.candidate)
       } else {
-        // Queue ICE candidate until remote description is set
+        console.log(`🧊 Queueing ICE candidate from ${fromUserId} (no remote description yet)`)
         if (!iceCandidateQueues.current.has(fromUserId)) {
           iceCandidateQueues.current.set(fromUserId, [])
         }
@@ -158,8 +201,8 @@ export const useWebRTC = (ws: WebSocket | null, myUserId: string) => {
       dc.close()
       dataChannels.delete(userId)
     }
-    setConnectedPeers(new Set([...connectedPeers].filter(id => id !== userId)))
-  }, [peerConnections, dataChannels, connectedPeers, setConnectedPeers])
+    setConnectedPeers(prev => new Set([...prev].filter(id => id !== userId)))
+  }, [peerConnections, dataChannels, setConnectedPeers])
 
   return { createPeerConnection, handleSignal, removePeer, broadcast }
 }
