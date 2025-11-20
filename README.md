@@ -71,7 +71,7 @@ echa25/
 │       │   └── utils/              # ユーティリティ関数
 │       ├── vite.config.ts
 │       └── package.json
-├── doc/                            # ドキュメント
+├── documents/                      # ドキュメント
 ├── package.json                    # ルートスクリプト
 └── README.md
 ```
@@ -174,6 +174,7 @@ npm run destroy
 - **色変更**: カラーピッカーで色を選択
 - **サイズ変更**: スライダーでブラシサイズを調整
 - **クリア**: クリアボタンでキャンバスをクリア
+- **接続管理**: 参加者リストで接続状態を確認、接続中は「部屋を退出」で部屋から退出可能
 
 ## コスト
 
@@ -245,7 +246,9 @@ npm run destroy
 
 - ICE Candidateキューイングでタイミング問題を解決
 - Data Channel接続状態の可視化
-- 参加者リストに接続状態を表示（緑枠）
+- 参加者リストに接続状態を表示（緑枠・接続状態テキスト）
+- 5秒間隔での自動リトライ機能
+- 接続をあきらめる手動終了機能
 - デバッグログの追加
 
 ### デプロイ自動化
@@ -264,8 +267,15 @@ npm run destroy
    - `📤 Broadcasting draw:` - 送信
    - `📢 Broadcasting to X peers` - ブロードキャスト
    - `📥 Received from:` - 受信
-3. 参加者リストで緑枠が表示されているか確認
+   - `🔄 Retrying connection to` - リトライ中
+3. 参加者リストで緑枠と「✅ WebRTC接続済み」が表示されているか確認
 4. Data Channelの状態が`open`か確認
+
+### 接続に時間がかかる
+
+- ローディング画面が表示されている場合、自動リトライが5秒間隔で実行されます
+- 待ちたくない場合は「部屋を退出」ボタンでメニューに戻る
+- 別の部屋で再度試すか、時間を置いて再参加してください
 
 ### WebSocket接続エラー
 
@@ -281,12 +291,12 @@ npm run destroy
 
 ## ドキュメント
 
-詳細なドキュメントは`doc/`ディレクトリを参照してください。
+詳細なドキュメントは`documents/`ディレクトリを参照してください。
 
-- [requirements.md](doc/requirements.md) - プロジェクト要件
-- [architecture.md](doc/architecture.md) - システムアーキテクチャ
-- [implementation-plan.md](doc/implementation-plan.md) - 実装計画
-- [development.md](doc/development.md) - 開発ガイド
+- [requirements.md](documents/requirements.md) - プロジェクト要件
+- [architecture.md](documents/architecture.md) - システムアーキテクチャ
+- [implementation-plan.md](documents/implementation-plan.md) - 実装計画
+- [development.md](documents/development.md) - 開発ガイド
 
 ## 注意事項
 

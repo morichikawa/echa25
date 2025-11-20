@@ -7,7 +7,7 @@ interface WebRTCContextType {
   peerConnections: Map<string, RTCPeerConnection>
   dataChannels: Map<string, RTCDataChannel>
   connectedPeers: Set<string>
-  setConnectedPeers: (peers: Set<string>) => void
+  setConnectedPeers: (peers: Set<string> | ((prev: Set<string>) => Set<string>)) => void
   broadcast: (message: any) => void
 }
 
@@ -20,11 +20,22 @@ export const WebRTCProvider = ({ children }: { children: ReactNode }) => {
   const [connectedPeers, setConnectedPeers] = useState(new Set<string>())
 
   const broadcast = useCallback((message: any) => {
-    console.log('📢 Broadcasting to', dataChannels.size, 'peers')
-    dataChannels.forEach((dc, userId) => {
-      console.log('  - Peer', userId, 'state:', dc.readyState)
-      if (dc.readyState === 'open') {
+    const openChannels = Array.from(dataChannels.entries()).filter(([_, dc]) => dc.readyState === 'open')
+    console.log('📢 Broadcasting to', openChannels.length, '/', dataChannels.size, 'peers')
+    
+    openChannels.forEach(([userId, dc]) => {
+      try {
+        console.log('  ✅ Sending to peer', userId)
         dc.send(JSON.stringify(message))
+      } catch (error) {
+        console.error('  ❌ Failed to send to peer', userId, error)
+      }
+    })
+    
+    // Log failed channels
+    dataChannels.forEach((dc, userId) => {
+      if (dc.readyState !== 'open') {
+        console.log('  ⚠️ Peer', userId, 'not ready, state:', dc.readyState)
       }
     })
   }, [dataChannels])
